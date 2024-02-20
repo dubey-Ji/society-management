@@ -20,6 +20,10 @@ const aggreementSchema = mongoose.Schema({
     ref: 'Licensee',
     default: null
   },
+  property: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Property'
+  },
   startDate: {
     type: Date,
     default: null
