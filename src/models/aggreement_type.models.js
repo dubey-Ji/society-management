@@ -1,11 +1,16 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const aggreementTypeSchema = mongoose.Schema({
-  name: {
-    type: String,
-    enum: ['Purchase', 'Rent']
-  }
-}, { timeStamps: true });
+const aggreementTypeSchema = mongoose.Schema(
+  {
+    name: {
+      type: String,
+      enum: ['Purchase', 'Rent'],
+    },
+  },
+  { timeStamps: true }
+);
 
-
-export const AggreementType = mongoose.model('AggreementType', aggreementTypeSchema);
+export const AggreementType = mongoose.model(
+  'AggreementType',
+  aggreementTypeSchema
+);

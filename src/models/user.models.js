@@ -1,36 +1,39 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const addressSchema = mongoose.Schema({
   flatNo: {
     type: Number,
-    required: true
+    required: true,
   },
   bldgName: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const userSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
+const userSchema = mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    phoneNumber: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    address: addressSchema,
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  phoneNumber: {
-    type: Number,
-    required: true,
-    unique: true
-  },
-  password: {
-    type: String,
-    required: true
-  },
-  address: addressSchema
-}, { timeStamps: true })
+  { timeStamps: true }
+);
 
 export const User = mongoose.model('User', userSchema);
