@@ -2,9 +2,13 @@ import mongoose from 'mongoose';
 
 const propertySchema = mongoose.Schema(
   {
-    no: {
+    roomNo: {
       type: Number,
-      required: true,
+      required: false,
+    },
+    shopNo: {
+      type: Number,
+      required: false,
     },
     wing: {
       type: String,
@@ -12,11 +16,6 @@ const propertySchema = mongoose.Schema(
     },
     sqFt: {
       type: Number,
-      required: true,
-    },
-    propertyType: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'PropertyType',
       required: true,
     },
     owner: {
