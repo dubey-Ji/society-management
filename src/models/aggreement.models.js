@@ -11,16 +11,6 @@ const aggreementSchema = mongoose.Schema(
       ref: 'AggreementType',
       required: true,
     },
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Owner',
-      required: true,
-    },
-    licensee: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Licensee',
-      default: null,
-    },
     property: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Property',

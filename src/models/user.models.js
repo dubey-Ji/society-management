@@ -38,6 +38,9 @@ const userSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    roles: {
+      type: Array,
+    },
   },
   { timeStamps: true }
 );
