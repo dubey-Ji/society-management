@@ -32,7 +32,7 @@ const billSchema = mongoose.Schema(
       ref: 'Property',
     },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 export const Bill = mongoose.model('Bill', billSchema);

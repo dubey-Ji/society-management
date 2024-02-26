@@ -7,7 +7,7 @@ const billTypeSchema = mongoose.Schema(
       required: true,
     },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 export const BillType = mongoose.model('BillType', billTypeSchema);

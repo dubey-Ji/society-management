@@ -3,6 +3,7 @@ import { User } from '../models/user.models.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { Role } from '../models/role.models.js';
 
 // userController.registerUser = async (req, res) => {
 //   // res.status(200).json({ message: 'Success' });
@@ -37,13 +38,23 @@ userController.registerUser = asyncHandler(async (req, res) => {
   const existedUser = await User.findOne({ email });
   if (existedUser) throw new ApiError(400, 'User already exist');
 
+  const roles = await Role.find({});
+  const rolesId = roles
+    .filter((r) => {
+      return req.body.roles.includes(r.name.toLowerCase()) && r.isActive;
+    })
+    .map((r) => r._id);
+
+  if (rolesId.length !== req.body.roles.length)
+    throw new ApiError(400, 'Roles not found');
+
   const user = await User.create({
     name,
     email,
     phoneNumber,
     password,
     address: { flatNo, bldgName },
-    roles: ['Owner'],
+    roles: rolesId,
   });
   const createdUser = await User.findById(user._id).select(
     '-password -refreshToken'
@@ -53,4 +64,14 @@ userController.registerUser = asyncHandler(async (req, res) => {
   return res
     .status(201)
     .json(new ApiResponse(200, createdUser, 'User Register successfully'));
+});
+
+userController.fetchAllUsers = asyncHandler(async (req, res) => {
+  const users = User.find({});
+
+  if (users.length === 0)
+    return res.status(400).json(new ApiError(400, 'No users found'));
+
+  const roles = Role.find({ isActive: true });
+  return;
 });

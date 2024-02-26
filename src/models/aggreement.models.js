@@ -25,7 +25,7 @@ const aggreementSchema = mongoose.Schema(
       default: null,
     },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 export const Aggreement = mongoose.model('Aggreement', aggreementSchema);
