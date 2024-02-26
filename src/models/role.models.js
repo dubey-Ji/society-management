@@ -16,4 +16,8 @@ const roleSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+roleSchema.pre('save', async function (next) {
+  this.name = this.name.toLowerCase();
+});
+
 export const Role = mongoose.model('Role', roleSchema);

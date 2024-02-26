@@ -16,7 +16,9 @@ app.use(cookieParser());
 
 // import routes
 import userRouter from './routes/user.routes.js';
+import roleRouter from './routes/role.routes.js';
 
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/roles', roleRouter);
 
 export { app };
