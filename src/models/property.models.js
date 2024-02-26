@@ -29,7 +29,7 @@ const propertySchema = mongoose.Schema(
       default: null,
     },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 export const Property = mongoose.model('Property', propertySchema);

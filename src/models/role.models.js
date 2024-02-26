@@ -13,7 +13,7 @@ const roleSchema = mongoose.Schema(
       default: true,
     },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 export const Role = mongoose.model('Role', roleSchema);

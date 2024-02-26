@@ -7,7 +7,7 @@ const aggreementTypeSchema = mongoose.Schema(
       enum: ['Purchase', 'Rent'],
     },
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 export const AggreementType = mongoose.model(
