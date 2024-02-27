@@ -5,32 +5,13 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Role } from '../models/role.models.js';
 
-// userController.registerUser = async (req, res) => {
-//   // res.status(200).json({ message: 'Success' });
-//   // validate if all the fields require are present or not
-//   // validate if user already exist
-//   // create user if not exist
-//   // return response after successfull creation
-//   const { name, email, phoneNumber, password } = req.body;
-//   const { flatNo, bldgName } = req.body.address;
-//   const user = await User.findOne({ email: email });
-//   if (user) return res.status(400).json({ message: 'User already exist' });
-//   await User.create({
-//     name,
-//     email,
-//     phoneNumber,
-//     password,
-//     address: { flatNo, bldgName },
-//   });
-//   res.status(201).json({ message: 'User register successfully' });
-// };
-
 userController.registerUser = asyncHandler(async (req, res) => {
   const { name, email, phoneNumber, password } = req.body;
   const { flatNo, bldgName } = req.body.address;
   if (
-    [name, email, password, bldgName].some((field) => field?.trim() === '') &&
-    [phoneNumber, flatNo].some((field) => field === null)
+    ([name, email, password, bldgName].some((field) => field?.trim() === '') &&
+      [phoneNumber, flatNo].some((field) => field === null)) ||
+    req.body.roles.length === 0
   ) {
     throw new ApiError(400, 'All fields are required');
   }
@@ -45,7 +26,7 @@ userController.registerUser = asyncHandler(async (req, res) => {
     })
     .map((r) => r._id);
 
-  if (rolesId.length !== req.body.roles.length)
+  if (rolesId.length !== req.body.roles.length || rolesId.length === 0)
     throw new ApiError(400, 'Roles not found');
 
   const user = await User.create({
@@ -67,11 +48,84 @@ userController.registerUser = asyncHandler(async (req, res) => {
 });
 
 userController.fetchAllUsers = asyncHandler(async (req, res) => {
-  const users = User.find({});
+  const users = await User.find({})
+    .populate('roles')
+    .select('-password -refreshToken');
 
   if (users.length === 0)
     return res.status(400).json(new ApiError(400, 'No users found'));
 
-  const roles = Role.find({ isActive: true });
-  return;
+  return res.status(200).json(new ApiResponse(200, users, 'All User fetched'));
+});
+
+userController.login = asyncHandler(async (req, res) => {
+  try {
+    // take login creds from FE
+    const { email, password } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (!existingUser) throw new ApiError(400, 'Invalid User credentials');
+
+    const isPasswordValid = existingUser.isPasswordCorrect(password); // isPasswordCorrect method is define in user model, you cannot use User.isPasswordCorrect
+    if (!isPasswordValid) throw new ApiError(400, 'Invalid User Credentials');
+
+    const accessToken = existingUser.generateAccessToken();
+    const refreshToken = existingUser.generateRefreshToken();
+
+    existingUser.refreshToken = refreshToken;
+    await existingUser.save();
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const loogedInUser = await User.findOne({ email })
+      .populate('roles')
+      .select('-password -refreshToken');
+
+    return res
+      .status(200)
+      .cookie('accessToken', accessToken, options)
+      .cookie('refreshToken', refreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          { user: loogedInUser, accessToken, refreshToken },
+          'User logged in successfully'
+        )
+      );
+  } catch (error) {
+    throw new ApiError(400, error?.message || 'Something went wrong');
+  }
+});
+
+userController.logout = asyncHandler(async (req, res) => {
+  try {
+    // get user for request object
+    // remove accesstoken, refreshtoken from db
+    // remove accesstoken, refreshtoken from cookies
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $unset: {
+          refreshToken: 1,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+    return res
+      .status(200)
+      .clearCookie('accessToken', options)
+      .clearCookie('refreshToken', options)
+      .json(new ApiResponse(200, {}, 'User logged out successfully'));
+  } catch (error) {
+    throw new ApiError(400, error?.message || 'Something went wrong');
+  }
 });
