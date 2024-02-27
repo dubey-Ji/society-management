@@ -4,6 +4,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { Role } from '../models/role.models.js';
+import { uploadFileAtCloudinary } from '../utils/cloudinary.js';
+import { readFileFromExcel } from '../utils/xlsx-utils.js';
 
 userController.registerUser = asyncHandler(async (req, res) => {
   const { name, email, phoneNumber, password } = req.body;
@@ -102,9 +104,6 @@ userController.login = asyncHandler(async (req, res) => {
 
 userController.logout = asyncHandler(async (req, res) => {
   try {
-    // get user for request object
-    // remove accesstoken, refreshtoken from db
-    // remove accesstoken, refreshtoken from cookies
     await User.findByIdAndUpdate(
       req.user._id,
       {
@@ -129,3 +128,21 @@ userController.logout = asyncHandler(async (req, res) => {
     throw new ApiError(400, error?.message || 'Something went wrong');
   }
 });
+
+// TODO: Create a controller through which you can take xls file of users to be register
+
+// userController.registerUserWithXlsx = asyncHandler(async (req, res) => {
+//   // upload file to localpath - which will be done by multer middleware in route only
+//   // take localpaht and upload to cloudinary
+//   // read the data from file and register user in db
+//   // after successfull user registeration unlink the file from local
+//   // maintain a file collection to keep record of all the uploaded file for registering users
+//   const localPath = req.files.users[0].path;
+//   // const files = await uploadFileAtCloudinary(localPath, { unlink: false });
+//   // console.log(req.files);
+//   // console.log(files);
+
+//   const data = readFileFromExcel(localPath);
+//   console.log(data);
+//   return res.status(200).json(new ApiResponse(200, {}, 'Success'));
+// });
