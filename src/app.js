@@ -17,11 +17,9 @@ app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 app.use(cookieParser());
 
 // import routes
-import userRouter from './routes/user.routes.js';
-import roleRouter from './routes/role.routes.js';
+import router from './routes/router.js';
 
-app.use('/api/v1/users', userRouter);
-app.use('/api/v1/roles', roleRouter);
+app.use('/api/v1', router);
 
 const APP_PATH = dirname(fileURLToPath(import.meta.url));
 // console.log(APP_PATH);
