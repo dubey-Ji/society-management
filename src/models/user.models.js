@@ -44,6 +44,11 @@ const userSchema = mongoose.Schema(
         ref: 'Role',
       },
     ],
+    file: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'File',
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -6,14 +6,30 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { Role } from '../models/role.models.js';
 import { uploadFileAtCloudinary } from '../utils/cloudinary.js';
 import { readFileFromExcel } from '../utils/xlsx-utils.js';
+import _ from 'lodash';
+import { File } from '../models/file.models.js';
 
-userController.registerUser = asyncHandler(async (req, res) => {
-  const { name, email, phoneNumber, password } = req.body;
-  const { flatNo, bldgName } = req.body.address;
+const validateRole = async (userRoles) => {
+  const roles = await Role.find({ isActive: true });
+  const rolesName = _.map(roles, 'name');
+  let isRoleValid = true;
+  for (let i = 0; i < userRoles.length; i++) {
+    if (!rolesName.includes(userRoles[i])) {
+      isRoleValid = false;
+      break;
+    }
+  }
+  return isRoleValid;
+};
+
+userController.registerUser = async (req, res) => {
+  const { name, email, phoneNumber, password, file } = req.body || req; // this controller is used to register user using excel also
+  const { flatNo, bldgName } = req.body?.address || req.address; // this controller is used to register user using excel also
+  const rolesName = req.body?.roles || req.roles;
   if (
     ([name, email, password, bldgName].some((field) => field?.trim() === '') &&
       [phoneNumber, flatNo].some((field) => field === null)) ||
-    req.body.roles.length === 0
+    rolesName.length === 0
   ) {
     throw new ApiError(400, 'All fields are required');
   }
@@ -24,12 +40,13 @@ userController.registerUser = asyncHandler(async (req, res) => {
   const roles = await Role.find({});
   const rolesId = roles
     .filter((r) => {
-      return req.body.roles.includes(r.name.toLowerCase()) && r.isActive;
+      return rolesName.includes(r.name.toLowerCase()) && r.isActive;
     })
     .map((r) => r._id);
 
-  if (rolesId.length !== req.body.roles.length || rolesId.length === 0)
-    throw new ApiError(400, 'Roles not found');
+  // Not required anymore as we are checking if all the roles passed by user is valid or not in validateRole function
+  // if (rolesId.length !== (req.body?.roles.length || rolesId.length === 0)
+  //   throw new ApiError(400, 'Roles not found');
 
   const user = await User.create({
     name,
@@ -38,16 +55,20 @@ userController.registerUser = asyncHandler(async (req, res) => {
     password,
     address: { flatNo, bldgName },
     roles: rolesId,
+    file: file || null,
   });
   const createdUser = await User.findById(user._id).select(
     '-password -refreshToken'
   );
   if (!createdUser)
-    throw new Error(500, 'Something went wrong while registering user');
+    throw new ApiError(500, 'Something went wrong while registering user');
+  if (!res) {
+    return { success: true };
+  }
   return res
     .status(201)
     .json(new ApiResponse(200, createdUser, 'User Register successfully'));
-});
+};
 
 userController.fetchAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find({})
@@ -131,18 +152,101 @@ userController.logout = asyncHandler(async (req, res) => {
 
 // TODO: Create a controller through which you can take xls file of users to be register
 
-// userController.registerUserWithXlsx = asyncHandler(async (req, res) => {
-//   // upload file to localpath - which will be done by multer middleware in route only
-//   // take localpaht and upload to cloudinary
-//   // read the data from file and register user in db
-//   // after successfull user registeration unlink the file from local
-//   // maintain a file collection to keep record of all the uploaded file for registering users
-//   const localPath = req.files.users[0].path;
-//   // const files = await uploadFileAtCloudinary(localPath, { unlink: false });
-//   // console.log(req.files);
-//   // console.log(files);
+function formatUserDataFromExcel(usersList) {
+  const data = [];
+  usersList.forEach((user) => {
+    let obj = {};
+    obj['name'] = user.name;
+    obj['email'] = user.email;
+    obj['phoneNumber'] = user.phoneNumber;
+    obj['password'] = user.password;
+    obj['address'] = {};
+    obj['address']['flatNo'] = user.flatNo;
+    obj['address']['bldgName'] = user.bldgName;
+    obj['roles'] = user.roles.slice(1, -1).split(', '); // converting string '[owner, chairman]' into array ['owner', 'chairman']
+    data.push(obj);
+  });
+  return data;
+}
 
-//   const data = readFileFromExcel(localPath);
-//   console.log(data);
-//   return res.status(200).json(new ApiResponse(200, {}, 'Success'));
-// });
+function checkFileStatus(filePromises) {
+  let successCount = 0;
+  let rejectedCount = 0;
+  for (let i = 0; i < filePromises.length; i++) {
+    if (filePromises[i].status === 'fulfilled') {
+      successCount += 1;
+    } else if (filePromises[i].status === 'rejected') {
+      rejectedCount += 1;
+    }
+  }
+
+  if (successCount === filePromises.length) {
+    return 'success';
+  } else if (rejectedCount === filePromises.length) {
+    return 'failed';
+  } else if (rejectedCount > 0) {
+    return 'partial success';
+  }
+}
+
+async function createErrorFile(data, dataPromise) {
+  try {
+    for (let i = 0; i < dataPromise.length; i++) {
+      if (dataPromise[i].status === 'rejected') {
+        data[i].status = 'rejected';
+        data[i].reason = dataPromise[i].reason;
+      }
+    }
+    console.log(data);
+    return;
+  } catch (error) {
+    // console.error(error?.message);
+    throw new ApiError(
+      400,
+      error?.message || 'Something went wrong while creating error file'
+    );
+  }
+}
+
+userController.registerUserWithXlsx = asyncHandler(async (req, res) => {
+  let fileModel;
+  try {
+    const localPath = req.files.users[0].path;
+    const data = readFileFromExcel(localPath);
+    const files = await uploadFileAtCloudinary(localPath, { unlink: true });
+
+    fileModel = await File.create({
+      url: files.secure_url,
+      fileName: files.original_filename,
+      status: 'processing',
+    });
+    const sheetName = Object.keys(data);
+    // this can be done only when sheet length is 1
+    const usersData = formatUserDataFromExcel(data[sheetName[0]]);
+
+    const promises = [];
+    usersData.forEach((user) => {
+      user.file = fileModel._id;
+      promises.push(userController.registerUser(user));
+    });
+    const usersPromise = await Promise.allSettled(promises);
+
+    const fileStatus = checkFileStatus(usersPromise);
+    fileModel['status'] = fileStatus;
+
+    if (fileStatus === 'failed' || fileStatus === 'partial success') {
+      await createErrorFile(usersData, usersPromise);
+    } else if (fileStatus === 'success') {
+      await fileModel.save();
+    }
+
+    return res.status(200).json(new ApiResponse(200, {}, 'Success'));
+  } catch (error) {
+    fileModel.status = 'failed';
+    await fileModel.save();
+    throw new ApiError(
+      400,
+      error?.message || 'Something went wrong while registering user'
+    );
+  }
+});

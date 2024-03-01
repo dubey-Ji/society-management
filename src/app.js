@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 
@@ -21,4 +23,6 @@ import roleRouter from './routes/role.routes.js';
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/roles', roleRouter);
 
-export { app };
+const APP_PATH = dirname(fileURLToPath(import.meta.url));
+// console.log(APP_PATH);
+export { app, APP_PATH };

@@ -10,3 +10,21 @@ export const readFileFromExcel = (path) => {
   }
   return resp;
 };
+
+export const writeFile = (data, sheetName, path) => {
+  const workBook = xlsx.utils.book_new();
+
+  const ws = xlsx.utils.json_to_sheet(data);
+
+  xlsx.utils.book_append_sheet(workBook, ws, sheetName);
+
+  xlsx.writeFile(
+    workBook,
+    path,
+    { bookType: 'xlsx', type: 'file' },
+    function (err) {
+      if (err) console.error(err);
+      console.log('Excel file created successfully at path: ', path);
+    }
+  );
+};
