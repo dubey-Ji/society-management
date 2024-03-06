@@ -2,7 +2,7 @@ import { it, describe, expect } from 'vitest';
 import { ApiResponse } from '../../src/utils/ApiResponse';
 
 describe('ApiResponse', () => {
-  it('should return a constructor method', () => {
+  it('should return a status code and data equal to status code and data passed while creating instance', () => {
     // arrange
     const statusCode = 200;
     const data = {};
