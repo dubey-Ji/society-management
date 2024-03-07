@@ -7,7 +7,7 @@
     "node": "=20.11.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
   },
   "type": "module",
@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.3",
-    "prettier": "^3.2.5"
+    "prettier": "^3.2.5",
+    "vitest": "^1.3.1"
   }
 }
